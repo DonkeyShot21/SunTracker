@@ -1,0 +1,15 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="sun_tracker.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="Telescope" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Choose Scope...</Value>
+    </Setting>
+    <Setting Name="PythonPath" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">C:/ProgramData/Anaconda3/python.exe</Value>
+    </Setting>
+    <Setting Name="Camera" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Choose Camera...</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
