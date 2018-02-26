@@ -64,7 +64,6 @@
             this.btnAbort = new System.Windows.Forms.Button();
             this.btnTrackHalpha = new System.Windows.Forms.Button();
             this.timerTracking = new System.Windows.Forms.Timer(this.components);
-            this.buttonTrackVisible = new System.Windows.Forms.Button();
             this.btnStopTracking = new System.Windows.Forms.Button();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.telescopeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -84,9 +83,6 @@
             this.pathToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.coordinatesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.tbChooseHalphaCamera = new System.Windows.Forms.TextBox();
-            this.tbChooseVisibleCamera = new System.Windows.Forms.TextBox();
-            this.tbChoose = new System.Windows.Forms.TextBox();
             this.comboBoxSpeed = new System.Windows.Forms.ComboBox();
             this.labelSpeed = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
@@ -100,7 +96,19 @@
             this.labelGainVisible = new System.Windows.Forms.Label();
             this.labelExposureVisible = new System.Windows.Forms.Label();
             this.tbExposureVisible = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.label6 = new System.Windows.Forms.Label();
+            this.cbTrackingTimer = new System.Windows.Forms.ComboBox();
+            this.tbChooseHalphaCamera = new System.Windows.Forms.TextBox();
+            this.tbChooseVisibleCamera = new System.Windows.Forms.TextBox();
+            this.tbChoose = new System.Windows.Forms.TextBox();
+            this.pbVisible = new System.Windows.Forms.PictureBox();
+            this.cbTrackingWavelength = new System.Windows.Forms.ComboBox();
+            this.timerLiveView = new System.Windows.Forms.Timer(this.components);
+            this.label7 = new System.Windows.Forms.Label();
+            this.cbPreviewMode = new System.Windows.Forms.ComboBox();
             this.menuStrip1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbVisible)).BeginInit();
             this.SuspendLayout();
             // 
             // btnChoose
@@ -312,9 +320,9 @@
             // 
             // btnSlewSun
             // 
-            this.btnSlewSun.Location = new System.Drawing.Point(11, 289);
+            this.btnSlewSun.Location = new System.Drawing.Point(188, 284);
             this.btnSlewSun.Name = "btnSlewSun";
-            this.btnSlewSun.Size = new System.Drawing.Size(75, 23);
+            this.btnSlewSun.Size = new System.Drawing.Size(86, 23);
             this.btnSlewSun.TabIndex = 28;
             this.btnSlewSun.Text = "Slew to Sun";
             this.btnSlewSun.UseVisualStyleBackColor = true;
@@ -323,9 +331,9 @@
             // separator
             // 
             this.separator.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.separator.Location = new System.Drawing.Point(280, 36);
+            this.separator.Location = new System.Drawing.Point(280, 24);
             this.separator.Name = "separator";
-            this.separator.Size = new System.Drawing.Size(2, 323);
+            this.separator.Size = new System.Drawing.Size(2, 345);
             this.separator.TabIndex = 29;
             // 
             // btnChooseVisibleCamera
@@ -419,36 +427,26 @@
             // 
             // btnTrackHalpha
             // 
-            this.btnTrackHalpha.Location = new System.Drawing.Point(92, 289);
+            this.btnTrackHalpha.Location = new System.Drawing.Point(98, 313);
             this.btnTrackHalpha.Name = "btnTrackHalpha";
             this.btnTrackHalpha.Size = new System.Drawing.Size(84, 23);
             this.btnTrackHalpha.TabIndex = 43;
-            this.btnTrackHalpha.Text = "Track Halpha";
+            this.btnTrackHalpha.Text = "Start";
             this.btnTrackHalpha.UseVisualStyleBackColor = true;
-            this.btnTrackHalpha.Click += new System.EventHandler(this.btnTrackHalpha_Click);
+            this.btnTrackHalpha.Click += new System.EventHandler(this.btnStartTracking_Click);
             // 
             // timerTracking
             // 
-            this.timerTracking.Interval = 15000;
+            this.timerTracking.Interval = 60000;
             this.timerTracking.Tick += new System.EventHandler(this.timerTracking_Tick);
-            // 
-            // buttonTrackVisible
-            // 
-            this.buttonTrackVisible.Location = new System.Drawing.Point(182, 289);
-            this.buttonTrackVisible.Name = "buttonTrackVisible";
-            this.buttonTrackVisible.Size = new System.Drawing.Size(92, 23);
-            this.buttonTrackVisible.TabIndex = 44;
-            this.buttonTrackVisible.Text = "Track Visible";
-            this.buttonTrackVisible.UseVisualStyleBackColor = true;
-            this.buttonTrackVisible.Click += new System.EventHandler(this.buttonTrackVisible_Click);
             // 
             // btnStopTracking
             // 
-            this.btnStopTracking.Location = new System.Drawing.Point(11, 318);
+            this.btnStopTracking.Location = new System.Drawing.Point(188, 313);
             this.btnStopTracking.Name = "btnStopTracking";
             this.btnStopTracking.Size = new System.Drawing.Size(86, 23);
             this.btnStopTracking.TabIndex = 45;
-            this.btnStopTracking.Text = "Stop Tracking";
+            this.btnStopTracking.Text = "Stop";
             this.btnStopTracking.UseVisualStyleBackColor = true;
             this.btnStopTracking.Click += new System.EventHandler(this.btnStopTracking_Click);
             // 
@@ -599,36 +597,6 @@
             this.coordinatesToolStripMenuItem.Size = new System.Drawing.Size(138, 22);
             this.coordinatesToolStripMenuItem.Text = "Coordinates";
             // 
-            // tbChooseHalphaCamera
-            // 
-            this.tbChooseHalphaCamera.BackColor = System.Drawing.SystemColors.Control;
-            this.tbChooseHalphaCamera.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::sun_tracker.Properties.Settings.Default, "HalphaCamera", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.tbChooseHalphaCamera.Location = new System.Drawing.Point(565, 58);
-            this.tbChooseHalphaCamera.Name = "tbChooseHalphaCamera";
-            this.tbChooseHalphaCamera.Size = new System.Drawing.Size(100, 20);
-            this.tbChooseHalphaCamera.TabIndex = 38;
-            this.tbChooseHalphaCamera.Text = global::sun_tracker.Properties.Settings.Default.HalphaCamera;
-            // 
-            // tbChooseVisibleCamera
-            // 
-            this.tbChooseVisibleCamera.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::sun_tracker.Properties.Settings.Default, "VisibleCamera", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.tbChooseVisibleCamera.Location = new System.Drawing.Point(287, 58);
-            this.tbChooseVisibleCamera.Name = "tbChooseVisibleCamera";
-            this.tbChooseVisibleCamera.ReadOnly = true;
-            this.tbChooseVisibleCamera.Size = new System.Drawing.Size(100, 20);
-            this.tbChooseVisibleCamera.TabIndex = 31;
-            this.tbChooseVisibleCamera.Text = global::sun_tracker.Properties.Settings.Default.VisibleCamera;
-            // 
-            // tbChoose
-            // 
-            this.tbChoose.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::sun_tracker.Properties.Settings.Default, "Telescope", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.tbChoose.Location = new System.Drawing.Point(11, 58);
-            this.tbChoose.Name = "tbChoose";
-            this.tbChoose.ReadOnly = true;
-            this.tbChoose.Size = new System.Drawing.Size(100, 20);
-            this.tbChoose.TabIndex = 0;
-            this.tbChoose.Text = global::sun_tracker.Properties.Settings.Default.Telescope;
-            // 
             // comboBoxSpeed
             // 
             this.comboBoxSpeed.FormattingEnabled = true;
@@ -656,9 +624,9 @@
             // label3
             // 
             this.label3.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.label3.Location = new System.Drawing.Point(555, 36);
+            this.label3.Location = new System.Drawing.Point(555, 24);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(2, 323);
+            this.label3.Size = new System.Drawing.Size(2, 345);
             this.label3.TabIndex = 51;
             // 
             // label4
@@ -694,6 +662,7 @@
             this.comboBoxTimerVisible.Name = "comboBoxTimerVisible";
             this.comboBoxTimerVisible.Size = new System.Drawing.Size(100, 21);
             this.comboBoxTimerVisible.TabIndex = 54;
+            this.comboBoxTimerVisible.Text = "Time Step";
             this.comboBoxTimerVisible.SelectedIndexChanged += new System.EventHandler(this.comboBoxTimerVisible_SelectedIndexChanged);
             // 
             // timerVisiblePhoto
@@ -704,7 +673,7 @@
             // cbFTPVisible
             // 
             this.cbFTPVisible.AutoSize = true;
-            this.cbFTPVisible.Location = new System.Drawing.Point(290, 136);
+            this.cbFTPVisible.Location = new System.Drawing.Point(290, 137);
             this.cbFTPVisible.Name = "cbFTPVisible";
             this.cbFTPVisible.Size = new System.Drawing.Size(89, 17);
             this.cbFTPVisible.TabIndex = 55;
@@ -757,13 +726,128 @@
             this.tbExposureVisible.TabIndex = 61;
             this.tbExposureVisible.TextChanged += new System.EventHandler(this.tbExposureVisible_TextChanged);
             // 
+            // label5
+            // 
+            this.label5.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.label5.Location = new System.Drawing.Point(0, 267);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(282, 2);
+            this.label5.TabIndex = 62;
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(12, 289);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(52, 13);
+            this.label6.TabIndex = 63;
+            this.label6.Text = "Tracking:";
+            // 
+            // cbTrackingTimer
+            // 
+            this.cbTrackingTimer.FormattingEnabled = true;
+            this.cbTrackingTimer.Items.AddRange(new object[] {
+            "1 min",
+            "2 min",
+            "5 min",
+            "10 min",
+            "30 min"});
+            this.cbTrackingTimer.Location = new System.Drawing.Point(11, 313);
+            this.cbTrackingTimer.Name = "cbTrackingTimer";
+            this.cbTrackingTimer.Size = new System.Drawing.Size(81, 21);
+            this.cbTrackingTimer.TabIndex = 64;
+            this.cbTrackingTimer.Text = "Time Step";
+            this.cbTrackingTimer.SelectedIndexChanged += new System.EventHandler(this.cbTrackingTimer_SelectedIndexChanged);
+            // 
+            // tbChooseHalphaCamera
+            // 
+            this.tbChooseHalphaCamera.BackColor = System.Drawing.SystemColors.Control;
+            this.tbChooseHalphaCamera.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::sun_tracker.Properties.Settings.Default, "HalphaCamera", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.tbChooseHalphaCamera.Location = new System.Drawing.Point(565, 58);
+            this.tbChooseHalphaCamera.Name = "tbChooseHalphaCamera";
+            this.tbChooseHalphaCamera.Size = new System.Drawing.Size(100, 20);
+            this.tbChooseHalphaCamera.TabIndex = 38;
+            this.tbChooseHalphaCamera.Text = global::sun_tracker.Properties.Settings.Default.HalphaCamera;
+            // 
+            // tbChooseVisibleCamera
+            // 
+            this.tbChooseVisibleCamera.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::sun_tracker.Properties.Settings.Default, "VisibleCamera", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.tbChooseVisibleCamera.Location = new System.Drawing.Point(287, 58);
+            this.tbChooseVisibleCamera.Name = "tbChooseVisibleCamera";
+            this.tbChooseVisibleCamera.ReadOnly = true;
+            this.tbChooseVisibleCamera.Size = new System.Drawing.Size(100, 20);
+            this.tbChooseVisibleCamera.TabIndex = 31;
+            this.tbChooseVisibleCamera.Text = global::sun_tracker.Properties.Settings.Default.VisibleCamera;
+            // 
+            // tbChoose
+            // 
+            this.tbChoose.DataBindings.Add(new System.Windows.Forms.Binding("Text", global::sun_tracker.Properties.Settings.Default, "Telescope", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.tbChoose.Location = new System.Drawing.Point(11, 58);
+            this.tbChoose.Name = "tbChoose";
+            this.tbChoose.ReadOnly = true;
+            this.tbChoose.Size = new System.Drawing.Size(100, 20);
+            this.tbChoose.TabIndex = 0;
+            this.tbChoose.Text = global::sun_tracker.Properties.Settings.Default.Telescope;
+            // 
+            // pbVisible
+            // 
+            this.pbVisible.Location = new System.Drawing.Point(290, 171);
+            this.pbVisible.Name = "pbVisible";
+            this.pbVisible.Size = new System.Drawing.Size(260, 208);
+            this.pbVisible.TabIndex = 65;
+            this.pbVisible.TabStop = false;
+            // 
+            // cbTrackingWavelength
+            // 
+            this.cbTrackingWavelength.FormattingEnabled = true;
+            this.cbTrackingWavelength.Items.AddRange(new object[] {
+            "Visible",
+            "Halpha"});
+            this.cbTrackingWavelength.Location = new System.Drawing.Point(12, 340);
+            this.cbTrackingWavelength.Name = "cbTrackingWavelength";
+            this.cbTrackingWavelength.Size = new System.Drawing.Size(81, 21);
+            this.cbTrackingWavelength.TabIndex = 66;
+            // 
+            // timerLiveView
+            // 
+            this.timerLiveView.Interval = 3000;
+            this.timerLiveView.Tick += new System.EventHandler(this.timerLiveView_Tick);
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.label7.Location = new System.Drawing.Point(390, 138);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(78, 13);
+            this.label7.TabIndex = 67;
+            this.label7.Text = "Preview Mode:";
+            // 
+            // cbPreviewMode
+            // 
+            this.cbPreviewMode.FormattingEnabled = true;
+            this.cbPreviewMode.Items.AddRange(new object[] {
+            "Live",
+            "Last Exposure"});
+            this.cbPreviewMode.Location = new System.Drawing.Point(474, 134);
+            this.cbPreviewMode.Name = "cbPreviewMode";
+            this.cbPreviewMode.Size = new System.Drawing.Size(75, 21);
+            this.cbPreviewMode.TabIndex = 68;
+            // 
             // FormHome
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.ControlLight;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            this.ClientSize = new System.Drawing.Size(840, 368);
+            this.ClientSize = new System.Drawing.Size(840, 389);
+            this.Controls.Add(this.cbPreviewMode);
+            this.Controls.Add(this.label7);
+            this.Controls.Add(this.cbTrackingWavelength);
+            this.Controls.Add(this.pbVisible);
+            this.Controls.Add(this.cbTrackingTimer);
+            this.Controls.Add(this.label6);
+            this.Controls.Add(this.label5);
             this.Controls.Add(this.tbExposureVisible);
             this.Controls.Add(this.labelExposureVisible);
             this.Controls.Add(this.labelGainVisible);
@@ -777,7 +861,6 @@
             this.Controls.Add(this.labelSpeed);
             this.Controls.Add(this.comboBoxSpeed);
             this.Controls.Add(this.btnStopTracking);
-            this.Controls.Add(this.buttonTrackVisible);
             this.Controls.Add(this.btnTrackHalpha);
             this.Controls.Add(this.btnAbort);
             this.Controls.Add(this.btnStartHalphaExposure);
@@ -819,6 +902,7 @@
             this.Text = "Sun Tracker";
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbVisible)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -863,7 +947,6 @@
         private System.Windows.Forms.Button btnAbort;
         private System.Windows.Forms.Button btnTrackHalpha;
         private System.Windows.Forms.Timer timerTracking;
-        private System.Windows.Forms.Button buttonTrackVisible;
         private System.Windows.Forms.Button btnStopTracking;
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem pythonToolStripMenuItem;
@@ -896,6 +979,14 @@
         private System.Windows.Forms.Label labelGainVisible;
         private System.Windows.Forms.Label labelExposureVisible;
         private System.Windows.Forms.TextBox tbExposureVisible;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.ComboBox cbTrackingTimer;
+        private System.Windows.Forms.PictureBox pbVisible;
+        private System.Windows.Forms.ComboBox cbTrackingWavelength;
+        private System.Windows.Forms.Timer timerLiveView;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.ComboBox cbPreviewMode;
     }
 }
 

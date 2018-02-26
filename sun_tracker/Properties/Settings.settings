@@ -14,11 +14,23 @@
     <Setting Name="VisibleCamera" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="VisibleGain" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)" />
+    <Setting Name="VisibleGain" Type="System.Int16" Scope="User">
+      <Value Profile="(Default)">10</Value>
     </Setting>
     <Setting Name="VisibleExposure" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0</Value>
+      <Value Profile="(Default)">10</Value>
+    </Setting>
+    <Setting Name="TimerVisible" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="MoveAxisSpeed" Type="System.String" Scope="User">
+      <Value Profile="(Default)">0.5 deg/sec</Value>
+    </Setting>
+    <Setting Name="TrackingTimer" Type="System.String" Scope="User">
+      <Value Profile="(Default)">10 min</Value>
+    </Setting>
+    <Setting Name="TrackingWavelength" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Visible</Value>
     </Setting>
   </Settings>
 </SettingsFile>

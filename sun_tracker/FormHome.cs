@@ -29,16 +29,26 @@ namespace sun_tracker
         Telescope telescope;
         string trackingWavelength = default(string);
         public int declinationDirection;
-        double moveAxisSpeed = 1;
+        double moveAxisSpeed;
 
         Util U = new Util();
 
         public FormHome()
         {
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
             InitializeComponent();
             telescopeProgID = Properties.Settings.Default.Telescope;
+            comboBoxSpeed.Text = Properties.Settings.Default.MoveAxisSpeed;
             VisibleCameraProgID = Properties.Settings.Default.VisibleCamera;
             HalphaCameraProgID = Properties.Settings.Default.HalphaCamera;
+            visibleGain = Properties.Settings.Default.VisibleGain;
+            visibleExposure = Properties.Settings.Default.VisibleExposure;
+            comboBoxTimerVisible.Text = Properties.Settings.Default.TimerVisible;
+            tbGainVisible.Text = Properties.Settings.Default.VisibleGain.ToString();
+            tbExposureVisible.Text = Properties.Settings.Default.VisibleExposure.ToString();
+            cbTrackingTimer.Text = Properties.Settings.Default.TrackingTimer;
+            trackingWavelength = Properties.Settings.Default.TrackingWavelength.ToUpper();
+            timerLiveView.Start();
         }
 
 
@@ -395,23 +405,17 @@ namespace sun_tracker
             }
         }
 
-        private void btnTrackHalpha_Click(object sender, EventArgs e)
+        private void btnStartTracking_Click(object sender, EventArgs e)
         {
-            trackingWavelength = "HALPHA";
-            timerTracking.Start();
-        }
-
-        private void buttonTrackVisible_Click(object sender, EventArgs e)
-        {
-            trackingWavelength = "VISIBLE";
             timerTracking.Start();
         }
 
         private async void timerTracking_Tick(object sender, EventArgs e)
         {
+            Console.WriteLine(trackingWavelength);
             try
             {
-                if (trackingWavelength == "VISIBLE")
+                if (trackingWavelength.ToUpper() == "VISIBLE")
                 {
                     if (VisibleCamera.Connected != true)
                     {
@@ -428,7 +432,7 @@ namespace sun_tracker
                     }
 
                 }
-                else if (trackingWavelength == "HALPHA")
+                else if (trackingWavelength.ToUpper() == "HALPHA")
                 {
                     if (HalphaCamera.Connected != true)
                     {
@@ -509,6 +513,8 @@ namespace sun_tracker
         private void comboBoxSpeed_SelectedIndexChanged(object sender, EventArgs e)
         {
             double.TryParse(comboBoxSpeed.Text.Replace(" deg/sec", ""), out moveAxisSpeed);
+            Properties.Settings.Default.MoveAxisSpeed = comboBoxSpeed.Text;
+            Properties.Settings.Default.Save();
         }
 
 
@@ -528,6 +534,7 @@ namespace sun_tracker
         Camera HalphaCamera;
         bool sendViaFTP;
         int visibleTimeStep;
+        int trackingTimeStep;
 
 
         double visibleExposure; // in milliseconds
@@ -659,8 +666,9 @@ namespace sun_tracker
             else if (comboBoxTimerVisible.Text.Contains("sec"))
             {
                 visibleTimeStep = 1000 * int.Parse(comboBoxTimerVisible.Text.Replace(" sec", ""));
-
             }
+            Properties.Settings.Default.TimerVisible = comboBoxTimerVisible.Text;
+            Properties.Settings.Default.Save();
         }
 
         private void btnStartRoutineVisible_Click(object sender, EventArgs e)
@@ -696,7 +704,7 @@ namespace sun_tracker
                 int[,] img = (int[,])VisibleCamera.ImageArray;
                 int width = img.GetLength(0);
                 int height = img.GetLength(1);
-                string filename = "visible/timer_visible.stf";
+                string filename = "visible/visible.stf";
                 var info = await storeImageAsync(width, height, cbFTPVisible.Checked, "visible", filename, img);
                 //Console.WriteLine(info);
             }
@@ -707,6 +715,7 @@ namespace sun_tracker
             if (short.TryParse(tbGainVisible.Text, out short g))
             {
                 visibleGain = g;
+                Properties.Settings.Default.VisibleGain = g;
             }
         }
 
@@ -715,12 +724,25 @@ namespace sun_tracker
             if (double.TryParse(tbExposureVisible.Text, out double exp))
             {
                 visibleExposure = exp;
+                Properties.Settings.Default.VisibleExposure = exp;
             }
+        }
+
+        private void cbTrackingTimer_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            int.TryParse(cbTrackingTimer.Text.Replace(" min",""), out trackingTimeStep);
+            Properties.Settings.Default.TrackingTimer = cbTrackingTimer.Text;
+            Properties.Settings.Default.Save();
+        }
+
+        private void timerLiveView_Tick(object sender, EventArgs e)
+        {
+            pbVisible.Image = FromFile("preview/preview.bmp");
         }
 
 
 
-        // PYTHON INTERFACE
+        // PYTHON INTERFACE & UTIL
 
         private Task<string> calculateOffset(string wavelength)
         {
@@ -787,7 +809,13 @@ namespace sun_tracker
             }
         }
 
-
+        public static Image FromFile(string path)
+        {
+            var bytes = File.ReadAllBytes(path);
+            var ms = new MemoryStream(bytes);
+            var img = Image.FromStream(ms);
+            return img;
+        }
 
 
         // MENU

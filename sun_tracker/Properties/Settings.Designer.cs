@@ -73,9 +73,10 @@ namespace sun_tracker.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        public int VisibleGain {
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public short VisibleGain {
             get {
-                return ((int)(this["VisibleGain"]));
+                return ((short)(this["VisibleGain"]));
             }
             set {
                 this["VisibleGain"] = value;
@@ -84,13 +85,61 @@ namespace sun_tracker.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
         public double VisibleExposure {
             get {
                 return ((double)(this["VisibleExposure"]));
             }
             set {
                 this["VisibleExposure"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string TimerVisible {
+            get {
+                return ((string)(this["TimerVisible"]));
+            }
+            set {
+                this["TimerVisible"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.5 deg/sec")]
+        public string MoveAxisSpeed {
+            get {
+                return ((string)(this["MoveAxisSpeed"]));
+            }
+            set {
+                this["MoveAxisSpeed"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10 min")]
+        public string TrackingTimer {
+            get {
+                return ((string)(this["TrackingTimer"]));
+            }
+            set {
+                this["TrackingTimer"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Visible")]
+        public string TrackingWavelength {
+            get {
+                return ((string)(this["TrackingWavelength"]));
+            }
+            set {
+                this["TrackingWavelength"] = value;
             }
         }
     }
