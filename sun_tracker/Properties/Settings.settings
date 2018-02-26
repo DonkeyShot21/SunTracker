@@ -3,13 +3,22 @@
   <Profiles />
   <Settings>
     <Setting Name="Telescope" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Choose Scope...</Value>
+      <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="PythonPath" Type="System.String" Scope="Application">
+    <Setting Name="PythonPath" Type="System.String" Scope="User">
       <Value Profile="(Default)">C:/ProgramData/Anaconda3/python.exe</Value>
     </Setting>
-    <Setting Name="Camera" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Choose Camera...</Value>
+    <Setting Name="HalphaCamera" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="VisibleCamera" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="VisibleGain" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="VisibleExposure" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0</Value>
     </Setting>
   </Settings>
 </SettingsFile>

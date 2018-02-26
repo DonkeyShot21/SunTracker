@@ -25,7 +25,7 @@ namespace sun_tracker.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Choose Scope...")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string Telescope {
             get {
                 return ((string)(this["Telescope"]));
@@ -35,24 +35,62 @@ namespace sun_tracker.Properties {
             }
         }
         
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("C:/ProgramData/Anaconda3/python.exe")]
         public string PythonPath {
             get {
                 return ((string)(this["PythonPath"]));
             }
+            set {
+                this["PythonPath"] = value;
+            }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Choose Camera...")]
-        public string Camera {
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string HalphaCamera {
             get {
-                return ((string)(this["Camera"]));
+                return ((string)(this["HalphaCamera"]));
             }
             set {
-                this["Camera"] = value;
+                this["HalphaCamera"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string VisibleCamera {
+            get {
+                return ((string)(this["VisibleCamera"]));
+            }
+            set {
+                this["VisibleCamera"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        public int VisibleGain {
+            get {
+                return ((int)(this["VisibleGain"]));
+            }
+            set {
+                this["VisibleGain"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double VisibleExposure {
+            get {
+                return ((double)(this["VisibleExposure"]));
+            }
+            set {
+                this["VisibleExposure"] = value;
             }
         }
     }
