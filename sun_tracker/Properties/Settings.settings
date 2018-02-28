@@ -32,5 +32,14 @@
     <Setting Name="TrackingWavelength" Type="System.String" Scope="User">
       <Value Profile="(Default)">Visible</Value>
     </Setting>
+    <Setting Name="TimerHalpha" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="HalphaGain" Type="System.Int16" Scope="User">
+      <Value Profile="(Default)">10</Value>
+    </Setting>
+    <Setting Name="HalphaExposure" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">10</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

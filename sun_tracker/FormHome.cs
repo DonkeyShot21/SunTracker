@@ -46,9 +46,13 @@ namespace sun_tracker
             comboBoxTimerVisible.Text = Properties.Settings.Default.TimerVisible;
             tbGainVisible.Text = Properties.Settings.Default.VisibleGain.ToString();
             tbExposureVisible.Text = Properties.Settings.Default.VisibleExposure.ToString();
+            halphaGain = Properties.Settings.Default.HalphaGain;
+            halphaExposure = Properties.Settings.Default.HalphaExposure;
+            ComboBoxTimerHalpha.Text = Properties.Settings.Default.TimerHalpha;
+            tbGainHalpha.Text = Properties.Settings.Default.HalphaGain.ToString();
+            tbExposureHalpha.Text = Properties.Settings.Default.HalphaExposure.ToString();
             cbTrackingTimer.Text = Properties.Settings.Default.TrackingTimer;
             trackingWavelength = Properties.Settings.Default.TrackingWavelength.ToUpper();
-            timerLiveView.Start();
         }
 
 
@@ -523,17 +527,14 @@ namespace sun_tracker
 
 
 
-
-
-
         // CAMERAS
 
         string VisibleCameraProgID;
         string HalphaCameraProgID;
         Camera VisibleCamera;
         Camera HalphaCamera;
-        bool sendViaFTP;
         int visibleTimeStep;
+        int halphaTimeStep;
         int trackingTimeStep;
 
 
@@ -601,13 +602,16 @@ namespace sun_tracker
             VisibleCamera.Connected = true;
             VisibleCamera.Gain = visibleGain;
             btnConnectVisibleCamera.Text = "Disconnect";
+            timerVisibleLiveView.Start();
         }
 
         private void connectHalphaCamera()
         {
             HalphaCamera = new Camera(HalphaCameraProgID);
             HalphaCamera.Connected = true;
+            HalphaCamera.Gain = halphaGain;
             btnConnectHalphaCamera.Text = "Disconnect";
+            timerHalphaLiveView.Start();
         }
 
         private void disconnectVisibleCamera()
@@ -615,6 +619,7 @@ namespace sun_tracker
             VisibleCamera.Connected = false;
             VisibleCamera = default(Camera);
             btnConnectVisibleCamera.Text = "Connect";
+            timerVisibleLiveView.Stop();
         }
 
         private void disconnectHalphaCamera()
@@ -622,23 +627,12 @@ namespace sun_tracker
             HalphaCamera.Connected = false;
             HalphaCamera = default(Camera);
             btnConnectHalphaCamera.Text = "Connect";
+            timerHalphaLiveView.Stop();
         }
 
-        private void btnStartHalphaExposure_Click(object sender, EventArgs e)
+        private void btnStartRoutineHalpha_Click(object sender, EventArgs e)
         {
             HalphaCamera.StartExposure(0.001*halphaExposure, true);
-        }
-
-        private async void btnDownloadHalpha_Click(object sender, EventArgs e)
-        {
-            if (HalphaCamera.ImageReady)
-            {
-                int[,] img = (int[,])HalphaCamera.ImageArray;
-                int width = img.GetLength(0);
-                int height = img.GetLength(1);
-                string filename = "test_halpha.csv";
-                var info = await storeImageAsync(width, height, true, "halpha", filename, img);
-            }
         }
 
         private void takeTrackingImage(string wavelength, string filename)
@@ -654,6 +648,19 @@ namespace sun_tracker
                 int width = img.GetLength(0);
                 int height = img.GetLength(1);                
                 var info = storeImageAsync(width, height, false, "visible", filename, img);
+            }
+
+            if (wavelength == "HALPHA")
+            {
+                HalphaCamera.StartExposure(0.001 * halphaExposure, true);
+                while (!HalphaCamera.ImageReady)
+                {
+                    Thread.Sleep((int)(halphaExposure / 3));
+                }
+                int[,] img = (int[,])HalphaCamera.ImageArray;
+                int width = img.GetLength(0);
+                int height = img.GetLength(1);
+                var info = storeImageAsync(width, height, false, "halpha", filename, img);
             }
         }
 
@@ -671,9 +678,29 @@ namespace sun_tracker
             Properties.Settings.Default.Save();
         }
 
+        private void ComboBoxTimerHalpha_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (ComboBoxTimerHalpha.Text.Contains("min"))
+            {
+                halphaTimeStep = 60 * 1000 * int.Parse(ComboBoxTimerHalpha.Text.Replace(" min", ""));
+            }
+            else if (ComboBoxTimerHalpha.Text.Contains("sec"))
+            {
+                visibleTimeStep = 1000 * int.Parse(ComboBoxTimerHalpha.Text.Replace(" sec", ""));
+            }
+            Properties.Settings.Default.TimerHalpha = ComboBoxTimerHalpha.Text;
+            Properties.Settings.Default.Save();
+        }
+
         private void btnStartRoutineVisible_Click(object sender, EventArgs e)
         {
             timerVisiblePhoto.Interval = visibleTimeStep;
+            timerVisiblePhoto.Start();
+        }
+
+        private void btnStopRoutineHalpha_Click(object sender, EventArgs e)
+        {
+            timerHalphaPhoto.Interval = halphaTimeStep;
             timerVisiblePhoto.Start();
         }
 
@@ -690,6 +717,11 @@ namespace sun_tracker
         private async void timerVisiblePhoto_Tick(object sender, EventArgs e)
         {
             await Task.Factory.StartNew(() => takeVisiblePhoto());
+        }
+
+        private async void timerHalphaPhoto_Tick(object sender, EventArgs e)
+        {
+            await Task.Factory.StartNew(() => takeHalphaPhoto());
         }
 
         private async void takeVisiblePhoto()
@@ -710,12 +742,41 @@ namespace sun_tracker
             }
         }
 
+        private async void takeHalphaPhoto()
+        {
+            HalphaCamera.StartExposure(0.001 * halphaExposure, true);
+            while (!HalphaCamera.ImageReady)
+            {
+                Thread.Sleep((int)halphaExposure / 3);
+            }
+            if (HalphaCamera.ImageReady)
+            {
+                int[,] img = (int[,])HalphaCamera.ImageArray;
+                int width = img.GetLength(0);
+                int height = img.GetLength(1);
+                string filename = "halpha/halpha.stf";
+                var info = await storeImageAsync(width, height, cbFTPHalpha.Checked, "halpha", filename, img);
+                //Console.WriteLine(info);
+            }
+        }
+
         private void tbGainVisible_TextChanged(object sender, EventArgs e)
         {
             if (short.TryParse(tbGainVisible.Text, out short g))
             {
-                visibleGain = g;
+                halphaGain = g;
                 Properties.Settings.Default.VisibleGain = g;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        private void tbGainHalpha_TextChanged(object sender, EventArgs e)
+        {
+            if (short.TryParse(tbGainHalpha.Text, out short g))
+            {
+                halphaGain = g;
+                Properties.Settings.Default.HalphaGain = g;
+                Properties.Settings.Default.Save();
             }
         }
 
@@ -725,6 +786,17 @@ namespace sun_tracker
             {
                 visibleExposure = exp;
                 Properties.Settings.Default.VisibleExposure = exp;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        private void tbExposureHalpha_TextChanged(object sender, EventArgs e)
+        {
+            if (double.TryParse(tbExposureHalpha.Text, out double exp))
+            {
+                halphaExposure = exp;
+                Properties.Settings.Default.HalphaExposure = exp;
+                Properties.Settings.Default.Save();
             }
         }
 
@@ -735,10 +807,18 @@ namespace sun_tracker
             Properties.Settings.Default.Save();
         }
 
-        private void timerLiveView_Tick(object sender, EventArgs e)
+        private async void timerVisibleLiveView_Tick(object sender, EventArgs e)
         {
-            pbVisible.Image = FromFile("preview/preview.bmp");
+            pbVisible.Image = await FromFile("preview/visible.bmp");
         }
+
+        private async void timerHalphaLiveView_Tick(object sender, EventArgs e)
+        {
+            pbHalpha.Image = await FromFile("preview/halpha.bmp");
+        }
+
+
+
 
 
 
@@ -748,7 +828,7 @@ namespace sun_tracker
         {
             return Task.Run<string>(() =>
             {
-                string csvFilename = "test_tracking_visible.csv";
+                string csvFilename = "tracking_" + wavelength.ToLower() + ".csv";
                 takeTrackingImage(wavelength, csvFilename);
                 string bmpFilename = csvFilename.Replace(".csv", ".bmp");
                 string result = runCmdPy("calculateOffset.py", wavelength + " " + bmpFilename);
@@ -769,8 +849,7 @@ namespace sun_tracker
                 }
                 File.WriteAllText(filename, String.Join(" ", listArray));
 
-                bool flipX = false;
-                bool flipY = false;
+                bool flipX = false, flipY = false;
                 if (wavelength == "halpha")
                 {
                     flipX = halphaFlipXToolStripMenuItem1.Checked;
@@ -809,12 +888,15 @@ namespace sun_tracker
             }
         }
 
-        public static Image FromFile(string path)
+        public static Task<Image> FromFile(string path)
         {
-            var bytes = File.ReadAllBytes(path);
-            var ms = new MemoryStream(bytes);
-            var img = Image.FromStream(ms);
-            return img;
+            return Task.Run<Image>(() =>
+            {
+                var bytes = File.ReadAllBytes(path);
+                var ms = new MemoryStream(bytes);
+                var img = Image.FromStream(ms);
+                return img;
+            });
         }
 
 
@@ -849,7 +931,6 @@ namespace sun_tracker
             FormSlew fs = new FormSlew(this);
             fs.ShowDialog();
         }
-
 
     }
 }

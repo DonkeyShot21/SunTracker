@@ -142,5 +142,41 @@ namespace sun_tracker.Properties {
                 this["TrackingWavelength"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string TimerHalpha {
+            get {
+                return ((string)(this["TimerHalpha"]));
+            }
+            set {
+                this["TimerHalpha"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public short HalphaGain {
+            get {
+                return ((short)(this["HalphaGain"]));
+            }
+            set {
+                this["HalphaGain"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public double HalphaExposure {
+            get {
+                return ((double)(this["HalphaExposure"]));
+            }
+            set {
+                this["HalphaExposure"] = value;
+            }
+        }
     }
 }
