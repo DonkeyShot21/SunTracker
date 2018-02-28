@@ -859,6 +859,7 @@
             this.btnSinglePhotoHalpha.TabIndex = 71;
             this.btnSinglePhotoHalpha.Text = "Single Photo";
             this.btnSinglePhotoHalpha.UseVisualStyleBackColor = true;
+            this.btnSinglePhotoHalpha.Click += new System.EventHandler(this.btnSinglePhotoHalpha_Click);
             // 
             // label8
             // 

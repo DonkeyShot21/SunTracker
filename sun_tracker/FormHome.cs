@@ -375,6 +375,179 @@ namespace sun_tracker
             try { telescope.MoveAxis(TelescopeAxes.axisSecondary, 0); } catch { }
         }
 
+        private void comboBoxSpeed_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            double.TryParse(comboBoxSpeed.Text.Replace(" deg/sec", ""), out moveAxisSpeed);
+            Properties.Settings.Default.MoveAxisSpeed = comboBoxSpeed.Text;
+            Properties.Settings.Default.Save();
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // TRACKING
+
+        int trackingTimeStep;
+
+        private void takeTrackingImage(string wavelength, string filename)
+        {
+            if (wavelength == "VISIBLE")
+            {
+                VisibleCamera.StartExposure(0.001 * visibleExposure, true);
+                while (!VisibleCamera.ImageReady)
+                {
+                    Thread.Sleep((int)(visibleExposure / 3));
+                }
+                int[,] img = (int[,])VisibleCamera.ImageArray;
+                int width = img.GetLength(0);
+                int height = img.GetLength(1);
+                var info = storeImageAsync(width, height, false, "visible", filename, img);
+            }
+
+            if (wavelength == "HALPHA")
+            {
+                HalphaCamera.StartExposure(0.001 * halphaExposure, true);
+                while (!HalphaCamera.ImageReady)
+                {
+                    Thread.Sleep((int)(halphaExposure / 3));
+                }
+                int[,] img = (int[,])HalphaCamera.ImageArray;
+                int width = img.GetLength(0);
+                int height = img.GetLength(1);
+                var info = storeImageAsync(width, height, false, "halpha", filename, img);
+            }
+        }
+
+        private void cbTrackingTimer_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            int.TryParse(cbTrackingTimer.Text.Replace(" min", ""), out trackingTimeStep);
+            Properties.Settings.Default.TrackingTimer = cbTrackingTimer.Text;
+            Properties.Settings.Default.Save();
+        }
+
+        private void btnStartTracking_Click(object sender, EventArgs e)
+        {
+            timerTracking.Start();
+        }
+
+        private void btnStopTracking_Click(object sender, EventArgs e)
+        {
+            timerTracking.Stop();
+        }
+
+        private async void timerTracking_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                if (trackingWavelength.ToUpper() == "VISIBLE")
+                {
+                    if (VisibleCamera.Connected != true)
+                    {
+                        timerTracking.Stop();
+                        throw new Exception(trackingWavelength + " Camera is not connected!");
+                    }
+                    else
+                    {
+                        var offset_radius = (await calculateOffset("VISIBLE")).Split(' ');
+                        double offsetRA = Double.Parse(offset_radius[0]);
+                        double offsetDec = Double.Parse(offset_radius[1]);
+                        int radius = Int32.Parse(offset_radius[2]);
+                        goToOffset(offsetRA, offsetDec);
+                    }
+                }
+                else if (trackingWavelength.ToUpper() == "HALPHA")
+                {
+                    if (HalphaCamera.Connected != true)
+                    {
+                        timerTracking.Stop();
+                        throw new Exception(trackingWavelength + " Camera is not connected!");
+                    }
+                    else
+                    {
+                        var offset_radius = (await calculateOffset("HALPHA")).Split(' ');
+                        double offsetRA = Double.Parse(offset_radius[0]);
+                        double offsetDec = Double.Parse(offset_radius[1]);
+                        int radius = Int32.Parse(offset_radius[2]);
+                        goToOffset(offsetRA, offsetDec);
+                    }
+                }
+            }
+            catch (Exception exp)
+            {
+                timerTracking.Stop();
+                MessageBox.Show(exp.Message, "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+        }
+
+        private async void goToOffset(double offsetRA, double offsetDec)
+        {
+            double targetRA = telescope.RightAscension + offsetRA;
+            double targetDec = telescope.Declination + offsetDec;
+
+            Console.WriteLine(targetRA.ToString() + ", " + telescope.RightAscension.ToString() + ", " + offsetRA.ToString());
+            Console.WriteLine(targetDec.ToString() + ", " + telescope.Declination.ToString());
+
+            await Task.Factory.StartNew(() => moveAxisToTarget(telescope, targetRA, targetDec, 0.3, 0.5, 0.005, 150));
+        }
+
+        private void moveAxisToTarget(Telescope telescope, double targetRA, double targetDec, double speed, double maxRate, double tolerance, int maxSteps)
+        {
+            if (telescope.CanMoveAxis(TelescopeAxes.axisPrimary))
+            {
+                int steps = 0;
+                double rateRA;
+                while (Math.Abs(targetRA - telescope.RightAscension) > tolerance && steps < maxSteps)
+                {
+                    rateRA = -Math.Sign(targetRA - telescope.RightAscension) * Math.Min(Math.Abs((targetRA - telescope.RightAscension) * speed), maxRate);
+                    telescope.MoveAxis(TelescopeAxes.axisPrimary, rateRA);
+                    if (steps % 10 == 0)
+                    {
+                        Console.WriteLine("RA: " + (targetRA - telescope.RightAscension).ToString());
+                        Console.WriteLine("\n");
+                    }
+                    steps += 1;
+                    Thread.Sleep(10);
+                }
+                telescope.MoveAxis(TelescopeAxes.axisPrimary, 0);
+            }
+
+            if (telescope.CanMoveAxis(TelescopeAxes.axisSecondary))
+            {
+                int steps = 0;
+                double rateDec;
+                while (Math.Abs(targetDec - telescope.Declination) > tolerance && steps < maxSteps)
+                {
+                    rateDec = declinationDirection * Math.Sign(targetDec - telescope.Declination) * Math.Min(Math.Abs((targetDec - telescope.Declination) * speed), maxRate);
+                    telescope.MoveAxis(TelescopeAxes.axisSecondary, rateDec);
+                    if (steps % 10 == 0)
+                    {
+                        Console.WriteLine("DEC: " + (targetDec - telescope.Declination).ToString());
+                        Console.WriteLine("\n");
+                    }
+                    steps += 1;
+                    Thread.Sleep(10);
+                }
+                telescope.MoveAxis(TelescopeAxes.axisSecondary, 0);
+            }
+        }
+
         private string sunCoord()
         {
             try
@@ -409,117 +582,6 @@ namespace sun_tracker
             }
         }
 
-        private void btnStartTracking_Click(object sender, EventArgs e)
-        {
-            timerTracking.Start();
-        }
-
-        private async void timerTracking_Tick(object sender, EventArgs e)
-        {
-            Console.WriteLine(trackingWavelength);
-            try
-            {
-                if (trackingWavelength.ToUpper() == "VISIBLE")
-                {
-                    if (VisibleCamera.Connected != true)
-                    {
-                        timerTracking.Stop();
-                        throw new Exception(trackingWavelength + " Camera is not connected!");
-                    }
-                    else
-                    {
-                        var offset_radius = (await calculateOffset("VISIBLE")).Split(' ');
-                        double offsetRA = Double.Parse(offset_radius[0]);
-                        double offsetDec = Double.Parse(offset_radius[1]);
-                        int radius = Int32.Parse(offset_radius[2]);
-                        goToOffset(offsetRA, offsetDec);
-                    }
-
-                }
-                else if (trackingWavelength.ToUpper() == "HALPHA")
-                {
-                    if (HalphaCamera.Connected != true)
-                    {
-                        timerTracking.Stop();
-                        throw new Exception(trackingWavelength + " Camera is not connected!");
-                    }
-                    else
-                    {
-                        //TODO
-                    }
-                }
-            }
-            catch (Exception exp)
-            {
-                timerTracking.Stop();
-                MessageBox.Show(exp.Message, "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-        }
-
-        private async void goToOffset(double offsetRA, double offsetDec)
-        {
-            double targetRA = telescope.RightAscension + offsetRA;
-            double targetDec = telescope.Declination + offsetDec;
-
-            Console.WriteLine(targetRA.ToString() + ", " + telescope.RightAscension.ToString() + ", " + offsetRA.ToString());
-            Console.WriteLine(targetDec.ToString() + ", " + telescope.Declination.ToString());
-
-            await Task.Factory.StartNew(() => moveAxisToTarget(telescope, targetRA, targetDec, 0.3, 0.5, 0.005, 150));
-        }
-
-        private void moveAxisToTarget(Telescope telescope, double targetRA, double targetDec, double speed, double maxRate, double tolerance, int maxSteps)
-        {
-            if (telescope.CanMoveAxis(TelescopeAxes.axisPrimary))
-            {
-                int steps = 0;
-                double rateRA;
-                while (Math.Abs(targetRA - telescope.RightAscension) > tolerance && steps < maxSteps)
-                {
-                    rateRA = - Math.Sign(targetRA - telescope.RightAscension) * Math.Min(Math.Abs((targetRA - telescope.RightAscension) * speed), maxRate);
-                    telescope.MoveAxis(TelescopeAxes.axisPrimary, rateRA);
-                    if (steps % 10 == 0)
-                    {
-                        Console.WriteLine("RA: " + (targetRA - telescope.RightAscension).ToString());
-                        Console.WriteLine("\n");
-                    }
-                    steps += 1;
-                    Thread.Sleep(10);
-                }
-                telescope.MoveAxis(TelescopeAxes.axisPrimary, 0);
-            }
-
-            if (telescope.CanMoveAxis(TelescopeAxes.axisSecondary))
-            {
-                int steps = 0;
-                double rateDec;
-                while (Math.Abs(targetDec - telescope.Declination) > tolerance && steps < maxSteps)
-                {
-                    rateDec = declinationDirection * Math.Sign(targetDec - telescope.Declination) * Math.Min(Math.Abs((targetDec - telescope.Declination) * speed), maxRate);
-                    telescope.MoveAxis(TelescopeAxes.axisSecondary, rateDec);
-                    if (steps % 10 == 0)
-                    {
-                        Console.WriteLine("DEC: " + (targetDec - telescope.Declination).ToString());
-                        Console.WriteLine("\n");
-                    }
-                    steps += 1;
-                    Thread.Sleep(10);
-                }
-                telescope.MoveAxis(TelescopeAxes.axisSecondary, 0);
-            }
-        }
-
-        private void btnStopTracking_Click(object sender, EventArgs e)
-        {
-            timerTracking.Stop();
-        }
-
-        private void comboBoxSpeed_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            double.TryParse(comboBoxSpeed.Text.Replace(" deg/sec", ""), out moveAxisSpeed);
-            Properties.Settings.Default.MoveAxisSpeed = comboBoxSpeed.Text;
-            Properties.Settings.Default.Save();
-        }
 
 
 
@@ -527,33 +589,30 @@ namespace sun_tracker
 
 
 
-        // CAMERAS
+
+
+
+
+
+
+
+
+
+
+
+
+        // VISIBLE CAMERA
 
         string VisibleCameraProgID;
-        string HalphaCameraProgID;
         Camera VisibleCamera;
-        Camera HalphaCamera;
         int visibleTimeStep;
-        int halphaTimeStep;
-        int trackingTimeStep;
-
-
-        double visibleExposure; // in milliseconds
+        double visibleExposure;
         short visibleGain;
-
-        double halphaExposure;
-        short halphaGain;
 
         private void btnChooseVisibleCamera_Click(object sender, EventArgs e)
         {
             VisibleCameraProgID = Camera.Choose(Properties.Settings.Default.VisibleCamera);
             tbChooseVisibleCamera.Text = VisibleCameraProgID;
-        }
-
-        private void btnChooseHalphaCamera_Click(object sender, EventArgs e)
-        {
-            HalphaCameraProgID = Camera.Choose(Properties.Settings.Default.VisibleCamera);
-            tbChooseHalphaCamera.Text = HalphaCameraProgID;
         }
 
         private void btnConnectVisibleCamera_Click(object sender, EventArgs e)
@@ -576,26 +635,6 @@ namespace sun_tracker
             }
         }
 
-        private void btnConnectHalphaCamera_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                if (HalphaCameraProgID != default(string) && btnConnectHalphaCamera.Text == "Connect")
-                {
-                    connectHalphaCamera();
-                }
-                else
-                {
-                    disconnectHalphaCamera();
-                }
-
-            }
-            catch (Exception exp)
-            {
-                MessageBox.Show(exp.Message, "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
         private void connectVisibleCamera()
         {
             VisibleCamera = new Camera(VisibleCameraProgID);
@@ -603,15 +642,6 @@ namespace sun_tracker
             VisibleCamera.Gain = visibleGain;
             btnConnectVisibleCamera.Text = "Disconnect";
             timerVisibleLiveView.Start();
-        }
-
-        private void connectHalphaCamera()
-        {
-            HalphaCamera = new Camera(HalphaCameraProgID);
-            HalphaCamera.Connected = true;
-            HalphaCamera.Gain = halphaGain;
-            btnConnectHalphaCamera.Text = "Disconnect";
-            timerHalphaLiveView.Start();
         }
 
         private void disconnectVisibleCamera()
@@ -622,53 +652,22 @@ namespace sun_tracker
             timerVisibleLiveView.Stop();
         }
 
-        private void disconnectHalphaCamera()
+        private void btnStartRoutineVisible_Click(object sender, EventArgs e)
         {
-            HalphaCamera.Connected = false;
-            HalphaCamera = default(Camera);
-            btnConnectHalphaCamera.Text = "Connect";
-            timerHalphaLiveView.Stop();
+            timerVisiblePhoto.Interval = visibleTimeStep;
+            timerVisiblePhoto.Start();
         }
 
-        private void btnStartRoutineHalpha_Click(object sender, EventArgs e)
+        private void btnStopRoutineVisible_Click(object sender, EventArgs e)
         {
-            HalphaCamera.StartExposure(0.001*halphaExposure, true);
-        }
-
-        private void takeTrackingImage(string wavelength, string filename)
-        {
-            if (wavelength == "VISIBLE")
-            {
-                VisibleCamera.StartExposure(0.001 * visibleExposure, true);
-                while (!VisibleCamera.ImageReady)
-                {
-                    Thread.Sleep((int)(visibleExposure / 3));
-                }
-                int[,] img = (int[,])VisibleCamera.ImageArray;
-                int width = img.GetLength(0);
-                int height = img.GetLength(1);                
-                var info = storeImageAsync(width, height, false, "visible", filename, img);
-            }
-
-            if (wavelength == "HALPHA")
-            {
-                HalphaCamera.StartExposure(0.001 * halphaExposure, true);
-                while (!HalphaCamera.ImageReady)
-                {
-                    Thread.Sleep((int)(halphaExposure / 3));
-                }
-                int[,] img = (int[,])HalphaCamera.ImageArray;
-                int width = img.GetLength(0);
-                int height = img.GetLength(1);
-                var info = storeImageAsync(width, height, false, "halpha", filename, img);
-            }
+            timerVisiblePhoto.Stop();
         }
 
         private void comboBoxTimerVisible_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (comboBoxTimerVisible.Text.Contains("min"))
             {
-                visibleTimeStep = 60 * 1000 *int.Parse(comboBoxTimerVisible.Text.Replace(" min",""));
+                visibleTimeStep = 60 * 1000 * int.Parse(comboBoxTimerVisible.Text.Replace(" min", ""));
             }
             else if (comboBoxTimerVisible.Text.Contains("sec"))
             {
@@ -676,37 +675,6 @@ namespace sun_tracker
             }
             Properties.Settings.Default.TimerVisible = comboBoxTimerVisible.Text;
             Properties.Settings.Default.Save();
-        }
-
-        private void ComboBoxTimerHalpha_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (ComboBoxTimerHalpha.Text.Contains("min"))
-            {
-                halphaTimeStep = 60 * 1000 * int.Parse(ComboBoxTimerHalpha.Text.Replace(" min", ""));
-            }
-            else if (ComboBoxTimerHalpha.Text.Contains("sec"))
-            {
-                visibleTimeStep = 1000 * int.Parse(ComboBoxTimerHalpha.Text.Replace(" sec", ""));
-            }
-            Properties.Settings.Default.TimerHalpha = ComboBoxTimerHalpha.Text;
-            Properties.Settings.Default.Save();
-        }
-
-        private void btnStartRoutineVisible_Click(object sender, EventArgs e)
-        {
-            timerVisiblePhoto.Interval = visibleTimeStep;
-            timerVisiblePhoto.Start();
-        }
-
-        private void btnStopRoutineHalpha_Click(object sender, EventArgs e)
-        {
-            timerHalphaPhoto.Interval = halphaTimeStep;
-            timerVisiblePhoto.Start();
-        }
-
-        private void btnStopRoutineVisible_Click(object sender, EventArgs e)
-        {
-            timerVisiblePhoto.Stop();
         }
 
         private async void btnSinglePhotoVisible_Click(object sender, EventArgs e)
@@ -717,11 +685,6 @@ namespace sun_tracker
         private async void timerVisiblePhoto_Tick(object sender, EventArgs e)
         {
             await Task.Factory.StartNew(() => takeVisiblePhoto());
-        }
-
-        private async void timerHalphaPhoto_Tick(object sender, EventArgs e)
-        {
-            await Task.Factory.StartNew(() => takeHalphaPhoto());
         }
 
         private async void takeVisiblePhoto()
@@ -742,6 +705,137 @@ namespace sun_tracker
             }
         }
 
+        private void tbGainVisible_TextChanged(object sender, EventArgs e)
+        {
+            if (short.TryParse(tbGainVisible.Text, out short g))
+            {
+                halphaGain = g;
+                Properties.Settings.Default.VisibleGain = g;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        private void tbExposureVisible_TextChanged(object sender, EventArgs e)
+        {
+            if (double.TryParse(tbExposureVisible.Text, out double exp))
+            {
+                visibleExposure = exp;
+                Properties.Settings.Default.VisibleExposure = exp;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        private async void timerVisibleLiveView_Tick(object sender, EventArgs e)
+        {
+            pbVisible.Image = await FromFile("preview/visible.bmp");
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // HALPHA CAMERA
+
+        string HalphaCameraProgID;
+        Camera HalphaCamera;
+        int halphaTimeStep;
+        double halphaExposure;
+        short halphaGain;
+
+        private void btnChooseHalphaCamera_Click(object sender, EventArgs e)
+        {
+            HalphaCameraProgID = Camera.Choose(Properties.Settings.Default.VisibleCamera);
+            tbChooseHalphaCamera.Text = HalphaCameraProgID;
+        }
+
+        private void btnConnectHalphaCamera_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (HalphaCameraProgID != default(string) && btnConnectHalphaCamera.Text == "Connect")
+                {
+                    connectHalphaCamera();
+                }
+                else
+                {
+                    disconnectHalphaCamera();
+                }
+
+            }
+            catch (Exception exp)
+            {
+                MessageBox.Show(exp.Message, "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void connectHalphaCamera()
+        {
+            HalphaCamera = new Camera(HalphaCameraProgID);
+            HalphaCamera.Connected = true;
+            HalphaCamera.Gain = halphaGain;
+            btnConnectHalphaCamera.Text = "Disconnect";
+            timerHalphaLiveView.Start();
+        }
+
+        private void disconnectHalphaCamera()
+        {
+            HalphaCamera.Connected = false;
+            HalphaCamera = default(Camera);
+            btnConnectHalphaCamera.Text = "Connect";
+            timerHalphaLiveView.Stop();
+        }
+
+        private void btnStartRoutineHalpha_Click(object sender, EventArgs e)
+        {
+            timerHalphaPhoto.Interval = halphaTimeStep;
+            timerHalphaPhoto.Start();
+        }
+
+        private void btnStopRoutineHalpha_Click(object sender, EventArgs e)
+        {
+            timerHalphaPhoto.Interval = halphaTimeStep;
+            timerVisiblePhoto.Start();
+        }
+
+        private void ComboBoxTimerHalpha_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (ComboBoxTimerHalpha.Text.Contains("min"))
+            {
+                halphaTimeStep = 60 * 1000 * int.Parse(ComboBoxTimerHalpha.Text.Replace(" min", ""));
+            }
+            else if (ComboBoxTimerHalpha.Text.Contains("sec"))
+            {
+                visibleTimeStep = 1000 * int.Parse(ComboBoxTimerHalpha.Text.Replace(" sec", ""));
+            }
+            Properties.Settings.Default.TimerHalpha = ComboBoxTimerHalpha.Text;
+            Properties.Settings.Default.Save();
+        }
+
+        private async void btnSinglePhotoHalpha_Click(object sender, EventArgs e)
+        {
+            await Task.Factory.StartNew(() => takeHalphaPhoto());
+        }
+
+        private async void timerHalphaPhoto_Tick(object sender, EventArgs e)
+        {
+            await Task.Factory.StartNew(() => takeHalphaPhoto());
+        }
+
         private async void takeHalphaPhoto()
         {
             HalphaCamera.StartExposure(0.001 * halphaExposure, true);
@@ -760,32 +854,12 @@ namespace sun_tracker
             }
         }
 
-        private void tbGainVisible_TextChanged(object sender, EventArgs e)
-        {
-            if (short.TryParse(tbGainVisible.Text, out short g))
-            {
-                halphaGain = g;
-                Properties.Settings.Default.VisibleGain = g;
-                Properties.Settings.Default.Save();
-            }
-        }
-
         private void tbGainHalpha_TextChanged(object sender, EventArgs e)
         {
             if (short.TryParse(tbGainHalpha.Text, out short g))
             {
                 halphaGain = g;
                 Properties.Settings.Default.HalphaGain = g;
-                Properties.Settings.Default.Save();
-            }
-        }
-
-        private void tbExposureVisible_TextChanged(object sender, EventArgs e)
-        {
-            if (double.TryParse(tbExposureVisible.Text, out double exp))
-            {
-                visibleExposure = exp;
-                Properties.Settings.Default.VisibleExposure = exp;
                 Properties.Settings.Default.Save();
             }
         }
@@ -800,22 +874,23 @@ namespace sun_tracker
             }
         }
 
-        private void cbTrackingTimer_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            int.TryParse(cbTrackingTimer.Text.Replace(" min",""), out trackingTimeStep);
-            Properties.Settings.Default.TrackingTimer = cbTrackingTimer.Text;
-            Properties.Settings.Default.Save();
-        }
-
-        private async void timerVisibleLiveView_Tick(object sender, EventArgs e)
-        {
-            pbVisible.Image = await FromFile("preview/visible.bmp");
-        }
-
         private async void timerHalphaLiveView_Tick(object sender, EventArgs e)
         {
             pbHalpha.Image = await FromFile("preview/halpha.bmp");
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -900,6 +975,24 @@ namespace sun_tracker
         }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         // MENU
 
         private void pathToolStripMenuItem_Click(object sender, EventArgs e)
@@ -931,6 +1024,5 @@ namespace sun_tracker
             FormSlew fs = new FormSlew(this);
             fs.ShowDialog();
         }
-
     }
 }
