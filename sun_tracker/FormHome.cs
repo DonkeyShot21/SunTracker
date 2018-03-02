@@ -53,6 +53,9 @@ namespace sun_tracker
             tbExposureHalpha.Text = Properties.Settings.Default.HalphaExposure.ToString();
             cbTrackingTimer.Text = Properties.Settings.Default.TrackingTimer;
             trackingWavelength = Properties.Settings.Default.TrackingWavelength.ToUpper();
+            cbTrackingWavelength.Text = Properties.Settings.Default.TrackingWavelength;
+            cbVisiblePreviewMode.Text = "Live";
+            cbHalphaPreviewMode.Text = "Live";
         }
 
 
@@ -405,34 +408,8 @@ namespace sun_tracker
 
         int trackingTimeStep;
 
-        private void takeTrackingImage(string wavelength, string filename)
-        {
-            if (wavelength == "VISIBLE")
-            {
-                VisibleCamera.StartExposure(0.001 * visibleExposure, true);
-                while (!VisibleCamera.ImageReady)
-                {
-                    Thread.Sleep((int)(visibleExposure / 3));
-                }
-                int[,] img = (int[,])VisibleCamera.ImageArray;
-                int width = img.GetLength(0);
-                int height = img.GetLength(1);
-                var info = storeImageAsync(width, height, false, "visible", filename, img);
-            }
 
-            if (wavelength == "HALPHA")
-            {
-                HalphaCamera.StartExposure(0.001 * halphaExposure, true);
-                while (!HalphaCamera.ImageReady)
-                {
-                    Thread.Sleep((int)(halphaExposure / 3));
-                }
-                int[,] img = (int[,])HalphaCamera.ImageArray;
-                int width = img.GetLength(0);
-                int height = img.GetLength(1);
-                var info = storeImageAsync(width, height, false, "halpha", filename, img);
-            }
-        }
+
 
         private void cbTrackingTimer_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -451,59 +428,38 @@ namespace sun_tracker
             timerTracking.Stop();
         }
 
+
         private async void timerTracking_Tick(object sender, EventArgs e)
         {
-            try
-            {
-                if (trackingWavelength.ToUpper() == "VISIBLE")
-                {
-                    if (VisibleCamera.Connected != true)
-                    {
-                        timerTracking.Stop();
-                        throw new Exception(trackingWavelength + " Camera is not connected!");
-                    }
-                    else
-                    {
-                        var offset_radius = (await calculateOffset("VISIBLE")).Split(' ');
-                        double offsetRA = Double.Parse(offset_radius[0]);
-                        double offsetDec = Double.Parse(offset_radius[1]);
-                        int radius = Int32.Parse(offset_radius[2]);
-                        goToOffset(offsetRA, offsetDec);
-                    }
-                }
-                else if (trackingWavelength.ToUpper() == "HALPHA")
-                {
-                    if (HalphaCamera.Connected != true)
-                    {
-                        timerTracking.Stop();
-                        throw new Exception(trackingWavelength + " Camera is not connected!");
-                    }
-                    else
-                    {
-                        var offset_radius = (await calculateOffset("HALPHA")).Split(' ');
-                        double offsetRA = Double.Parse(offset_radius[0]);
-                        double offsetDec = Double.Parse(offset_radius[1]);
-                        int radius = Int32.Parse(offset_radius[2]);
-                        goToOffset(offsetRA, offsetDec);
-                    }
-                }
-            }
-            catch (Exception exp)
+            Camera camera = GetCameraFromWavelength(trackingWavelength);
+            double exposure = GetExposureFromWavelength(trackingWavelength);
+            bool flipX = GetFlipXFromWavelength(trackingWavelength);
+            bool flipY = GetFlipYFromWavelength(trackingWavelength);
+
+            if (camera.Connected != true)
             {
                 timerTracking.Stop();
-                MessageBox.Show(exp.Message, "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                throw new Exception(trackingWavelength + " Camera is not connected!");
             }
+
+            Bitmap bitmap = await GetImageFromCamera(camera, exposure, flipX, flipY);
+
+            string filename = Path.Combine("tracking", "image_hel_" + trackingWavelength.ToLower() + DateTime.Now.ToString("_yyyyMMddTHHmmss") + ".bmp");
+            bitmap.Save(filename);
+
+            var offset_radius = (await calculateOffset("VISIBLE", filename)).Split(' ');
+            double offsetRA = Double.Parse(offset_radius[0]);
+            double offsetDec = Double.Parse(offset_radius[1]);
+            int radius = Int32.Parse(offset_radius[2]);
+            goToOffset(offsetRA, offsetDec);
         }
 
         private async void goToOffset(double offsetRA, double offsetDec)
         {
             double targetRA = telescope.RightAscension + offsetRA;
             double targetDec = telescope.Declination + offsetDec;
-
             Console.WriteLine(targetRA.ToString() + ", " + telescope.RightAscension.ToString() + ", " + offsetRA.ToString());
             Console.WriteLine(targetDec.ToString() + ", " + telescope.Declination.ToString());
-
             await Task.Factory.StartNew(() => moveAxisToTarget(telescope, targetRA, targetDec, 0.3, 0.5, 0.005, 150));
         }
 
@@ -582,7 +538,12 @@ namespace sun_tracker
             }
         }
 
-
+        private void cbTrackingWavelength_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            trackingWavelength = cbTrackingWavelength.Text;
+            Properties.Settings.Default.TrackingWavelength = cbTrackingWavelength.Text;
+            Properties.Settings.Default.Save();
+        }
 
 
 
@@ -689,20 +650,9 @@ namespace sun_tracker
 
         private async void takeVisiblePhoto()
         {
-            VisibleCamera.StartExposure(0.001 * visibleExposure, true);
-            while (!VisibleCamera.ImageReady)
-            {
-                Thread.Sleep((int)visibleExposure / 3);
-            }
-            if (VisibleCamera.ImageReady)
-            {
-                int[,] img = (int[,])VisibleCamera.ImageArray;
-                int width = img.GetLength(0);
-                int height = img.GetLength(1);
-                string filename = "visible/visible.stf";
-                var info = await storeImageAsync(width, height, cbFTPVisible.Checked, "visible", filename, img);
-                //Console.WriteLine(info);
-            }
+            Bitmap bitmap = await GetImageFromCamera(VisibleCamera, visibleExposure, visibleFlipXToolStripMenuItem1.Checked, visibleFlipYToolStripMenuItem1.Checked);
+            string filename = Path.Combine("visible", "image_hel_" + trackingWavelength.ToLower() + DateTime.Now.ToString("_yyyyMMddTHHmmss") + ".bmp");
+            bitmap.Save(filename);
         }
 
         private void tbGainVisible_TextChanged(object sender, EventArgs e)
@@ -727,9 +677,31 @@ namespace sun_tracker
 
         private async void timerVisibleLiveView_Tick(object sender, EventArgs e)
         {
-            pbVisible.Image = await FromFile("preview/visible.bmp");
+            switch (cbVisiblePreviewMode.Text)
+            {
+                case "Last Tracking":
+                    string[] filesTracking = Directory.GetFiles(@"tracking","*center.bmp");
+                    Array.Sort(filesTracking, StringComparer.InvariantCulture);
+                    pbVisible.Image = await FromFile(filesTracking.LastOrDefault());
+                    break;
+                case "Last Exposure":
+                    string[] filesVisible = Directory.GetFiles(@"visible", "*.bmp");
+                    Array.Sort(filesVisible, StringComparer.InvariantCulture);
+                    pbVisible.Image = await FromFile(filesVisible.LastOrDefault());
+                    break;
+                default:
+                    timerVisibleLiveView.Interval = 2000;
+                    Bitmap bitmap = await GetImageFromCamera(VisibleCamera, visibleExposure, visibleFlipXToolStripMenuItem1.Checked, visibleFlipYToolStripMenuItem1.Checked);
+                    Bitmap resized = new Bitmap(bitmap, new Size(pbVisible.Width, pbVisible.Height));
+                    pbVisible.Image = resized;
+                    break;
+            }
         }
 
+        private void cbVisiblePreviewMode_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
 
 
 
@@ -820,10 +792,11 @@ namespace sun_tracker
             }
             else if (ComboBoxTimerHalpha.Text.Contains("sec"))
             {
-                visibleTimeStep = 1000 * int.Parse(ComboBoxTimerHalpha.Text.Replace(" sec", ""));
+                halphaTimeStep = 1000 * int.Parse(ComboBoxTimerHalpha.Text.Replace(" sec", ""));
             }
             Properties.Settings.Default.TimerHalpha = ComboBoxTimerHalpha.Text;
             Properties.Settings.Default.Save();
+            Console.WriteLine(halphaTimeStep);
         }
 
         private async void btnSinglePhotoHalpha_Click(object sender, EventArgs e)
@@ -838,20 +811,9 @@ namespace sun_tracker
 
         private async void takeHalphaPhoto()
         {
-            HalphaCamera.StartExposure(0.001 * halphaExposure, true);
-            while (!HalphaCamera.ImageReady)
-            {
-                Thread.Sleep((int)halphaExposure / 3);
-            }
-            if (HalphaCamera.ImageReady)
-            {
-                int[,] img = (int[,])HalphaCamera.ImageArray;
-                int width = img.GetLength(0);
-                int height = img.GetLength(1);
-                string filename = "halpha/halpha.stf";
-                var info = await storeImageAsync(width, height, cbFTPHalpha.Checked, "halpha", filename, img);
-                //Console.WriteLine(info);
-            }
+            Bitmap bitmap = await GetImageFromCamera(HalphaCamera, halphaExposure, halphaFlipXToolStripMenuItem1.Checked, halphaFlipYToolStripMenuItem1.Checked);
+            string filename = Path.Combine("halpha", "image_hel_" + trackingWavelength.ToLower() + DateTime.Now.ToString("_yyyyMMddTHHmmss") + ".bmp");
+            bitmap.Save(filename);
         }
 
         private void tbGainHalpha_TextChanged(object sender, EventArgs e)
@@ -876,7 +838,9 @@ namespace sun_tracker
 
         private async void timerHalphaLiveView_Tick(object sender, EventArgs e)
         {
-            pbHalpha.Image = await FromFile("preview/halpha.bmp");
+            Bitmap bitmap = await GetImageFromCamera(HalphaCamera, halphaExposure, halphaFlipXToolStripMenuItem1.Checked, halphaFlipYToolStripMenuItem1.Checked);
+            Bitmap resized = new Bitmap(bitmap, new Size(pbHalpha.Width, pbHalpha.Height));
+            pbHalpha.Image = resized;
         }
 
 
@@ -899,29 +863,29 @@ namespace sun_tracker
 
         // PYTHON INTERFACE & UTIL
 
-        private Task<string> calculateOffset(string wavelength)
+        private Task<string> calculateOffset(string wavelength, string filename)
         {
             return Task.Run<string>(() =>
             {
-                string csvFilename = "tracking_" + wavelength.ToLower() + ".csv";
-                takeTrackingImage(wavelength, csvFilename);
-                string bmpFilename = csvFilename.Replace(".csv", ".bmp");
-                string result = runCmdPy("calculateOffset.py", wavelength + " " + bmpFilename);
-                //Console.WriteLine(result);
+                string result = runCmdPy("calculateOffset.py", wavelength + " " + filename);
                 return result;
             });
         }
 
-        private Task<string> storeImageAsync(int width, int height, bool sendViaFTP, string wavelength, string filename, int[,] array)
+        private Task<string> storeImageAsync(int width, int height, bool sendViaFTP, string wavelength, string directory, int[,] array)
         {
             return Task.Run<string>(() =>
             {
+
                 List<int> listArray = new List<int>(width*height);
                 for (int i = 0; i < width; i++)
                 {
                     for (int j = 0; j < height; j++)
                         listArray.Add(array[i, j]);
                 }
+
+                string date = DateTime.Now.ToString("_yyyyMMddTHHmmss");
+                string filename = Path.Combine(directory, "image_hel_" + wavelength + date + ".stf");
                 File.WriteAllText(filename, String.Join(" ", listArray));
 
                 bool flipX = false, flipY = false;
@@ -935,14 +899,14 @@ namespace sun_tracker
                     flipY = visibleFlipYToolStripMenuItem1.Checked;
                 }
 
-                List<string> listArgs = new List<string> { filename, width.ToString(), height.ToString(), sendViaFTP.ToString(), wavelength, flipX.ToString(), flipY.ToString() };
+                List<string> listArgs = new List<string> { filename, width.ToString(), height.ToString(), sendViaFTP.ToString(), wavelength, flipX.ToString(), flipY.ToString(), date};
                 string args = string.Join(" ", listArgs);
                 string info = runCmdPy("storeImage.py", args);
-                return info;
+                return filename.Replace(".stf", ".bmp"); ;
             });
         }
 
-        public string runCmdPy(string cmd, string args)
+        private string runCmdPy(string cmd, string args)
         {
             ProcessStartInfo start = new ProcessStartInfo();
             start.FileName = Properties.Settings.Default.PythonPath;
@@ -963,10 +927,11 @@ namespace sun_tracker
             }
         }
 
-        public static Task<Image> FromFile(string path)
+        private static Task<Image> FromFile(string path)
         {
             return Task.Run<Image>(() =>
             {
+                if (path == null) return default(Image);
                 var bytes = File.ReadAllBytes(path);
                 var ms = new MemoryStream(bytes);
                 var img = Image.FromStream(ms);
@@ -974,13 +939,65 @@ namespace sun_tracker
             });
         }
 
+        private unsafe Bitmap BitmapFromArray(Int32[,] pixels, int width, int height)
+        {
+            Bitmap bitmap = new Bitmap(width, height, PixelFormat.Format8bppIndexed);
+            BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
+            for (int y = 0; y < height; y++)
+            {
+                byte* row = (byte*)bitmapData.Scan0 + bitmapData.Stride * y;
+                for (int x = 0; x < width; x++)
+                {
+                    byte grayShade8bit = (byte)(pixels[x, y]);
+                    row[x * 3 + 0] = grayShade8bit;
+                    row[x * 3 + 1] = grayShade8bit;
+                    row[x * 3 + 2] = grayShade8bit;
+                }
+            }
+            bitmap.UnlockBits(bitmapData);
+            return bitmap;
+        }
 
+        private Camera GetCameraFromWavelength(string wavelength)
+        {
+            if (wavelength.ToUpper() == "VISIBLE") return VisibleCamera;
+            if (wavelength.ToUpper() == "HALPHA") return HalphaCamera;
+            else return default(Camera);
+        }
 
+        private double GetExposureFromWavelength(string wavelength)
+        {
+            if (wavelength.ToUpper() == "VISIBLE") return visibleExposure;
+            if (wavelength.ToUpper() == "HALPHA") return halphaExposure;
+            else return default(double);
+        }
 
+        private bool GetFlipXFromWavelength(string wavelength)
+        {
+            if (wavelength.ToUpper() == "VISIBLE") return visibleFlipXToolStripMenuItem1.Checked;
+            if (wavelength.ToUpper() == "HALPHA") return halphaFlipXToolStripMenuItem1.Checked;
+            else return default(bool);
+        }
 
+        private bool GetFlipYFromWavelength(string wavelength)
+        {
+            if (wavelength.ToUpper() == "VISIBLE") return visibleFlipYToolStripMenuItem1.Checked;
+            if (wavelength.ToUpper() == "HALPHA") return halphaFlipYToolStripMenuItem1.Checked;
+            else return default(bool);
+        }
 
-
-
+        private Task<Bitmap> GetImageFromCamera(Camera camera, double exposure, bool flipX, bool flipY)
+        {
+            return Task.Run(() => {
+                camera.StartExposure(0.001 * exposure, true);
+                while (!camera.ImageReady) Thread.Sleep((int)exposure / 3);
+                Int32[,] imgArray = (Int32[,])camera.ImageArray;
+                var bitmap = BitmapFromArray(imgArray, imgArray.GetLength(0), imgArray.GetLength(1));
+                if (flipX) bitmap.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                if (flipY) bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
+                return bitmap;
+            });
+        }
 
 
 
@@ -1024,5 +1041,7 @@ namespace sun_tracker
             FormSlew fs = new FormSlew(this);
             fs.ShowDialog();
         }
+
+
     }
 }
