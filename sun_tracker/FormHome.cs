@@ -274,7 +274,7 @@ namespace sun_tracker
             }
         }
 
-        private void btnPark_Click(object sender, EventArgs e)
+        private async void btnPark_Click(object sender, EventArgs e)
         {
             if (UIisActive)
             {
@@ -687,10 +687,9 @@ namespace sun_tracker
                 case "Last Exposure":
                     string[] filesVisible = Directory.GetFiles(@"visible", "*.bmp");
                     Array.Sort(filesVisible, StringComparer.InvariantCulture);
-                    pbVisible.Image = await FromFile(filesVisible.LastOrDefault());
+                    pbVisible.Image = new Bitmap(await FromFile(filesVisible.LastOrDefault()), new Size(pbVisible.Width, pbVisible.Height));
                     break;
                 default:
-                    timerVisibleLiveView.Interval = 2000;
                     Bitmap bitmap = await GetImageFromCamera(VisibleCamera, visibleExposure, visibleFlipXToolStripMenuItem1.Checked, visibleFlipYToolStripMenuItem1.Checked);
                     Bitmap resized = new Bitmap(bitmap, new Size(pbVisible.Width, pbVisible.Height));
                     pbVisible.Image = resized;
@@ -698,10 +697,6 @@ namespace sun_tracker
             }
         }
 
-        private void cbVisiblePreviewMode_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
 
 
 
@@ -838,12 +833,25 @@ namespace sun_tracker
 
         private async void timerHalphaLiveView_Tick(object sender, EventArgs e)
         {
-            Bitmap bitmap = await GetImageFromCamera(HalphaCamera, halphaExposure, halphaFlipXToolStripMenuItem1.Checked, halphaFlipYToolStripMenuItem1.Checked);
-            Bitmap resized = new Bitmap(bitmap, new Size(pbHalpha.Width, pbHalpha.Height));
-            pbHalpha.Image = resized;
+            switch (cbHalphaPreviewMode.Text)
+            {
+                case "Last Tracking":
+                    string[] filesTracking = Directory.GetFiles(@"tracking", "*center.bmp");
+                    Array.Sort(filesTracking, StringComparer.InvariantCulture);
+                    pbHalpha.Image = await FromFile(filesTracking.LastOrDefault());
+                    break;
+                case "Last Exposure":
+                    string[] filesHalpha = Directory.GetFiles(@"halpha", "*.bmp");
+                    Array.Sort(filesHalpha, StringComparer.InvariantCulture);
+                    pbHalpha.Image = new Bitmap(await FromFile(filesHalpha.LastOrDefault()), new Size(pbHalpha.Width, pbHalpha.Height));
+                    break;
+                default:
+                    Bitmap bitmap = await GetImageFromCamera(HalphaCamera, halphaExposure, halphaFlipXToolStripMenuItem1.Checked, halphaFlipYToolStripMenuItem1.Checked);
+                    Bitmap resized = new Bitmap(bitmap, new Size(pbHalpha.Width, pbHalpha.Height));
+                    pbHalpha.Image = resized;
+                    break;
+            }
         }
-
-
 
 
 
@@ -869,40 +877,6 @@ namespace sun_tracker
             {
                 string result = runCmdPy("calculateOffset.py", wavelength + " " + filename);
                 return result;
-            });
-        }
-
-        private Task<string> storeImageAsync(int width, int height, bool sendViaFTP, string wavelength, string directory, int[,] array)
-        {
-            return Task.Run<string>(() =>
-            {
-
-                List<int> listArray = new List<int>(width*height);
-                for (int i = 0; i < width; i++)
-                {
-                    for (int j = 0; j < height; j++)
-                        listArray.Add(array[i, j]);
-                }
-
-                string date = DateTime.Now.ToString("_yyyyMMddTHHmmss");
-                string filename = Path.Combine(directory, "image_hel_" + wavelength + date + ".stf");
-                File.WriteAllText(filename, String.Join(" ", listArray));
-
-                bool flipX = false, flipY = false;
-                if (wavelength == "halpha")
-                {
-                    flipX = halphaFlipXToolStripMenuItem1.Checked;
-                    flipY = halphaFlipYToolStripMenuItem1.Checked;
-                } else if (wavelength == "visible")
-                {
-                    flipX = visibleFlipXToolStripMenuItem1.Checked;
-                    flipY = visibleFlipYToolStripMenuItem1.Checked;
-                }
-
-                List<string> listArgs = new List<string> { filename, width.ToString(), height.ToString(), sendViaFTP.ToString(), wavelength, flipX.ToString(), flipY.ToString(), date};
-                string args = string.Join(" ", listArgs);
-                string info = runCmdPy("storeImage.py", args);
-                return filename.Replace(".stf", ".bmp"); ;
             });
         }
 
@@ -939,9 +913,9 @@ namespace sun_tracker
             });
         }
 
-        private unsafe Bitmap BitmapFromArray(Int32[,] pixels, int width, int height)
+        private unsafe Bitmap FromTwoDimIntArrayRGB(Int32[,] pixels, int width, int height)
         {
-            Bitmap bitmap = new Bitmap(width, height, PixelFormat.Format8bppIndexed);
+            Bitmap bitmap = new Bitmap(width, height, PixelFormat.Format24bppRgb);
             BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
             for (int y = 0; y < height; y++)
             {
@@ -956,6 +930,58 @@ namespace sun_tracker
             }
             bitmap.UnlockBits(bitmapData);
             return bitmap;
+        }
+
+
+        public static Bitmap FromTwoDimIntArrayGray(Int32[,] data)
+        {
+            Int32 width = data.GetLength(0);
+            Int32 height = data.GetLength(1);
+            Int32 byteIndex = 0;
+            Byte[] dataBytes = new Byte[height * width];
+            for (Int32 y = 0; y < height; y++)
+            {
+                for (Int32 x = 0; x < width; x++)
+                {
+                    dataBytes[byteIndex] = (Byte)(((UInt32)data[x, y]) & 0xFF);
+                    byteIndex++;
+                }
+            }
+            Color[] palette = new Color[256];
+            for (Int32 b = 0; b < 256; b++)
+                palette[b] = Color.FromArgb(b, b, b);
+            return BuildImage(dataBytes, width, height, width, PixelFormat.Format8bppIndexed, palette, null);
+        }
+
+        public static Bitmap BuildImage(Byte[] sourceData, Int32 width, Int32 height, Int32 stride, PixelFormat pixelFormat, Color[] palette, Color? defaultColor)
+        {
+            Bitmap newImage = new Bitmap(width, height, pixelFormat);
+            BitmapData targetData = newImage.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, newImage.PixelFormat);
+            Int32 newDataWidth = ((Image.GetPixelFormatSize(pixelFormat) * width) + 7) / 8;
+            Boolean isFlipped = stride < 0;
+            stride = Math.Abs(stride);
+            Int32 targetStride = targetData.Stride;
+            Int64 scan0 = targetData.Scan0.ToInt64();
+            for (Int32 y = 0; y < height; y++)
+                Marshal.Copy(sourceData, y * stride, new IntPtr(scan0 + y * targetStride), newDataWidth);
+            newImage.UnlockBits(targetData);
+            if (isFlipped)
+                newImage.RotateFlip(RotateFlipType.Rotate180FlipX);
+            if ((pixelFormat & PixelFormat.Indexed) != 0 && palette != null)
+            {
+                ColorPalette pal = newImage.Palette;
+                for (Int32 i = 0; i < pal.Entries.Length; i++)
+                {
+                    if (i < palette.Length)
+                        pal.Entries[i] = palette[i];
+                    else if (defaultColor.HasValue)
+                        pal.Entries[i] = defaultColor.Value;
+                    else
+                        break;
+                }
+                newImage.Palette = pal;
+            }
+            return newImage;
         }
 
         private Camera GetCameraFromWavelength(string wavelength)
@@ -992,7 +1018,8 @@ namespace sun_tracker
                 camera.StartExposure(0.001 * exposure, true);
                 while (!camera.ImageReady) Thread.Sleep((int)exposure / 3);
                 Int32[,] imgArray = (Int32[,])camera.ImageArray;
-                var bitmap = BitmapFromArray(imgArray, imgArray.GetLength(0), imgArray.GetLength(1));
+                //var bitmap = BitmapFromArray(imgArray, imgArray.GetLength(0), imgArray.GetLength(1));
+                var bitmap = FromTwoDimIntArrayGray(imgArray);
                 if (flipX) bitmap.RotateFlip(RotateFlipType.RotateNoneFlipX);
                 if (flipY) bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
                 return bitmap;
@@ -1041,7 +1068,5 @@ namespace sun_tracker
             FormSlew fs = new FormSlew(this);
             fs.ShowDialog();
         }
-
-
     }
 }

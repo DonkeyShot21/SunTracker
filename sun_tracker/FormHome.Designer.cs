@@ -795,7 +795,7 @@
             // 
             // timerVisibleLiveView
             // 
-            this.timerVisibleLiveView.Interval = 2000;
+            this.timerVisibleLiveView.Interval = 1000;
             this.timerVisibleLiveView.Tick += new System.EventHandler(this.timerVisibleLiveView_Tick);
             // 
             // label7
@@ -819,7 +819,6 @@
             this.cbVisiblePreviewMode.Name = "cbVisiblePreviewMode";
             this.cbVisiblePreviewMode.Size = new System.Drawing.Size(75, 21);
             this.cbVisiblePreviewMode.TabIndex = 68;
-            this.cbVisiblePreviewMode.SelectedIndexChanged += new System.EventHandler(this.cbVisiblePreviewMode_SelectedIndexChanged);
             // 
             // btnStopRoutineHalpha
             // 
@@ -941,7 +940,7 @@
             // 
             // timerHalphaLiveView
             // 
-            this.timerHalphaLiveView.Interval = 2000;
+            this.timerHalphaLiveView.Interval = 1000;
             this.timerHalphaLiveView.Tick += new System.EventHandler(this.timerHalphaLiveView_Tick);
             // 
             // tbChooseHalphaCamera
@@ -1083,7 +1082,7 @@
         private System.Windows.Forms.Button btnPark;
         private System.Windows.Forms.Label labelStatus;
         private System.Windows.Forms.CheckBox cbTrack;
-        private System.Windows.Forms.Label labelValStatus;
+        public System.Windows.Forms.Label labelValStatus;
         private System.Windows.Forms.Button btnSlewSun;
         private System.Windows.Forms.Label separator;
         private System.Windows.Forms.Button btnChooseVisibleCamera;
