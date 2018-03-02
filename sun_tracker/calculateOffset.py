@@ -15,7 +15,7 @@ wav_radpx = {"HALPHA" : 1.1260345355325731e-05,
               "VISIBLE" : 1.1794377267140912e-05}
 
 def correlation(img, wavelength, date):
-    METH_NUM = 2
+    METH_NUM = 0
     method = METHODS[METH_NUM]
     pad = 10
     sun_diameter = 0.00929826069
@@ -54,7 +54,7 @@ def correlation(img, wavelength, date):
     bottom_right = (top_left[0] + w, top_left[1] + h)
 
     center = tuple(map(sum, zip(top_left, (int(side/2),int(side/2)))))
-    return center, int(diameter/2)
+    return center[::-1], int(diameter/2)
 
 if __name__ == "__main__":
     date = str(datetime.date.today()).replace("-","")
@@ -68,14 +68,11 @@ if __name__ == "__main__":
     center, radius = correlation(img, wavelength, date)
 
     cv2.circle(img, center, radius, 255, 10)
-    cv2.imwrite("preview/preview.bmp",cv2.resize(img,(260,208)))
+    cv2.imwrite(filename.replace(".bmp","_center.bmp"),cv2.resize(img,(260,208)))
 
     offset = tuple([len(img[0]) // 2 - center[0], len(img) // 2 - center[1]]) # (RA, DEC)
     offserRad = tuple([wav_radpx[wavelength] * offset[0] * (180 / pi),
                        wav_radpx[wavelength] * offset[1] * (180 / pi)])
-
-    #img[center[0],center[1]] = 255
-    #cv2.imwrite(filename,img)
 
     print(offserRad[0], offserRad[1], radius, offset, center)
     # finish
